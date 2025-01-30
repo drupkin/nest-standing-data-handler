@@ -1,0 +1,61 @@
+[
+  {
+    "CommonBlock": {
+      "S0": {
+        "interfaceID": "IF-047",
+        "schemaVersion": "010",
+        "eventCode": "[ISD]"
+      },
+      "S1": {
+        "environmentTag": "DEV",
+        "subText": "minim consectetur",
+        "senderUniqueReference": "esse aliquip dolore",
+        "senderTimestamp": "quis cupidatat ex reprehe",
+        "senderDIPID": "exercitati",
+        "senderRoleID": "dolor",
+        "senderCorrelationID": "aliqua sint Lorem velit nulla",
+        "DIPConnectionProviderID": "laborumdol"
+      },
+      "A0": {
+        "primaryRecipients": [
+          "incididunt",
+          "reprehende"
+        ],
+        "secondaryRecipients": [
+          "amet offic"
+        ],
+        "always": [
+          "ad ullamco"
+        ]
+      },
+      "D0": {
+        "transactionID": "dolore aliqua labore ",
+        "transactionTimestamp": "officia aute ullamco cons",
+        "publicationID": "dolore a",
+        "initialCorrelationID": "dolor",
+        "replayIndicator": false,
+        "serviceTicketURL": "nostrud reprehenderit consequat"
+      }
+    },
+    "CustomBlock": {
+      "P01": {
+        "publicationDescription": "nisi Ut occaecat",
+        "publicationVersionID": "elit ",
+        "publicationDate": "laboris nisi deserunt aut"
+      },
+      "P02List": [
+        {
+          "distributionVariantID": "cons",
+          "distributionVariantName": "deserunt non",
+          "distributionVariantDescription": "Lorem magna est es",
+          "distributionVariantVersionID": "consect",
+          "distributionVariantPublicationDate": "aliqua sed minim in Lorem",
+          "distributionVariantFormat": "ex",
+          "distributionDeliveryFormat": "adipis",
+          "distributionDeliveryURI": "https://datastore-hxt2-helix.elexon.co.uk/api/ISD",
+          "additionalInformation": "labore"
+        }
+      ]
+    }
+  }
+]
