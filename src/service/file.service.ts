@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import * as AdmZip from 'adm-zip';
 import { Readable } from 'stream';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 @Injectable()
 export class FileService {
-  async unzip(zipStream: Readable): Promise<string[]> {
+  async unzip(
+    zipStream: Readable,
+  ): Promise<Array<{ path: string; name: string }>> {
     console.log('📂 Unzipping file...');
 
     return new Promise((resolve, reject) => {
@@ -32,11 +37,36 @@ export class FileService {
             throw new Error('No entries found in ZIP file.');
           }
 
-          console.log(`📂 Extracted ${entries.length} files:`);
-          const extractedFiles = entries.map((entry) => {
-            console.log(`  - ${entry.entryName}`);
-            return entry.entryName;
-          });
+          // Create a temporary directory to extract files
+          const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'unzip-'));
+          console.log(`📂 Extracting files to temporary directory: ${tempDir}`);
+
+          const extractedFiles = entries
+            .map((entry) => {
+              const entryName = entry.entryName;
+              console.log(`  - ${entryName}`);
+
+              if (entry.isDirectory) {
+                console.log(`    Skipping directory: ${entryName}`);
+                return null;
+              }
+
+              const outputPath = path.join(tempDir, entryName);
+              fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+              fs.writeFileSync(outputPath, entry.getData());
+
+              const fileName =
+                entryName
+                  .split('/')
+                  .pop()
+                  ?.replace(/\.[^/.]+$/, '') || 'unknown';
+
+              return {
+                path: outputPath, // Absolute path to the extracted file
+                name: fileName, // File name without path and extension
+              };
+            })
+            .filter((file) => file !== null);
 
           resolve(extractedFiles);
         } catch (error) {

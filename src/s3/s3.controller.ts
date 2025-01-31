@@ -1,30 +1,29 @@
-import { Controller, Get, Injectable } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Injectable, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { S3Service } from './s3.service';
-import { DownloadService } from 'src/service/download.service';
-import { FileService } from 'src/service/file.service';
+import { CsvProcessorService } from 'src/service/csv.processor.service';
 
 @Controller('s3')
 @Injectable()
 export class S3Controller {
   constructor(
     private readonly s3Service: S3Service,
-    private readonly downloadService: DownloadService,
-    private readonly fileService: FileService,
+    private readonly csvProcessorService: CsvProcessorService,
   ) {}
 
   @Get('read')
-  async readJson(): Promise<any> {
+  async readJson(@Res() res: Response): Promise<any> {
     const bucketName = 'dev-ops-industry-data-replication';
     const objectKey = `${bucketName}/MHHS/IF-flows/IF-047/2024/08/27/if-047-example.json`;
 
     const pub047Array = await this.s3Service.getObject(bucketName, objectKey);
 
-    // Validate and extract P02List entries
     const allP02Lists = this.validatePub047(pub047Array);
 
     console.log('✅ Processing all P02 entries:', allP02Lists);
 
-    await this.processZipFiles(allP02Lists);
+    await this.csvProcessorService.processZipFiles(allP02Lists);
+    res.status(HttpStatus.OK);
   }
 
   /**
@@ -58,21 +57,5 @@ export class S3Controller {
       throw new Error('No valid P02List found in the entire JSON array.');
     }
     return allP02Lists;
-  }
-
-  private async processZipFiles(p02List: any[]): Promise<void> {
-    for (const p02 of p02List) {
-      try {
-        const zipStream = await this.downloadService.downloadFile(
-          p02.distributionDeliveryURI,
-        );
-
-        const csvFiles = await this.fileService.unzip(zipStream);
-
-        console.log('Extracted CSV files:', csvFiles);
-      } catch (error) {
-        console.error(`Error processing ZIP:`, error.message);
-      }
-    }
   }
 }
