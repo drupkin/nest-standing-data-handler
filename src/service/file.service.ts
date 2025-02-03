@@ -1,84 +1,50 @@
-import { Injectable } from '@nestjs/common';
-import * as AdmZip from 'adm-zip';
+import { Injectable, Logger } from '@nestjs/common';
 import { Readable } from 'stream';
-import * as fs from 'fs';
+import * as AdmZip from 'adm-zip';
 import * as path from 'path';
-import * as os from 'os';
 
 @Injectable()
 export class FileService {
+  private readonly logger = new Logger(FileService.name);
+
   async unzip(
     zipStream: Readable,
-  ): Promise<Array<{ path: string; name: string }>> {
-    console.log('📂 Unzipping file...');
+  ): Promise<Array<{ name: string; data: Buffer }>> {
+    this.logger.log('📂 Unzipping file...');
 
+    try {
+      const buffer = await this.collectStream(zipStream);
+      return this.extractFilesFromBuffer(buffer);
+    } catch (error) {
+      this.logger.error(`❌ Error processing ZIP: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async collectStream(stream: Readable): Promise<Buffer> {
+    const chunks: Buffer[] = [];
     return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-
-      zipStream.on('data', (chunk) => {
-        console.log(`📥 Received chunk of size: ${chunk.length}`);
-        chunks.push(chunk);
-      });
-
-      zipStream.on('end', () => {
-        console.log('✅ ZIP stream ended. Processing buffer...');
-        try {
-          const buffer = Buffer.concat(chunks);
-          console.log(`🔍 Buffer size: ${buffer.length} bytes`);
-
-          if (buffer.length === 0) {
-            throw new Error('ZIP file is empty.');
-          }
-
-          const zip = new AdmZip(buffer);
-          const entries = zip.getEntries();
-
-          if (!entries || entries.length === 0) {
-            throw new Error('No entries found in ZIP file.');
-          }
-
-          // Create a temporary directory to extract files
-          const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'unzip-'));
-          console.log(`📂 Extracting files to temporary directory: ${tempDir}`);
-
-          const extractedFiles = entries
-            .map((entry) => {
-              const entryName = entry.entryName;
-              console.log(`  - ${entryName}`);
-
-              if (entry.isDirectory) {
-                console.log(`    Skipping directory: ${entryName}`);
-                return null;
-              }
-
-              const outputPath = path.join(tempDir, entryName);
-              fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-              fs.writeFileSync(outputPath, entry.getData());
-
-              const fileName =
-                entryName
-                  .split('/')
-                  .pop()
-                  ?.replace(/\.[^/.]+$/, '') || 'unknown';
-
-              return {
-                path: outputPath, // Absolute path to the extracted file
-                name: fileName, // File name without path and extension
-              };
-            })
-            .filter((file) => file !== null);
-
-          resolve(extractedFiles);
-        } catch (error) {
-          console.error('❌ Error processing ZIP:', error);
-          reject(`Error processing ZIP: ${error.message || error}`);
-        }
-      });
-
-      zipStream.on('error', (err) => {
-        console.error('❌ Stream error:', err);
-        reject(`Error processing ZIP stream: ${err.message}`);
-      });
+      stream.on('data', (chunk) => chunks.push(chunk));
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+      stream.on('error', reject);
     });
+  }
+
+  private extractFilesFromBuffer(
+    buffer: Buffer,
+  ): Array<{ name: string; data: Buffer }> {
+    const zip = new AdmZip(buffer);
+    return zip
+      .getEntries()
+      .filter((entry) => !entry.isDirectory)
+      .map((entry) => ({
+        name: this.getCleanFileName(entry.entryName),
+        data: entry.getData(),
+      }));
+  }
+
+  private getCleanFileName(entryName: string): string {
+    const baseName = path.basename(entryName);
+    return baseName.replace(/\.[^/.]+$/, ''); // Remove extension
   }
 }

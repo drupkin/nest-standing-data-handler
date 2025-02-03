@@ -7,17 +7,18 @@ import { FileService } from './service/file.service';
 import { CsvProcessorService } from './service/csv.processor.service';
 import { CsvService } from './service/csv.service';
 import { DatabaseService } from './service/database.service';
+import dataSource from './config/data-source.config';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '123',
-      database: 'ops-inbound-db',
-      synchronize: true,
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    TypeOrmModule.forRootAsync({
+      useFactory: () => ({}),
+      dataSourceFactory: async () => {
+        await dataSource.initialize();
+        return dataSource;
+      },
     }),
   ],
   controllers: [S3Controller],

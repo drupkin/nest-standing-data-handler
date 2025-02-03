@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DownloadService } from './download.service';
 import { FileService } from './file.service';
 import { CsvService } from './csv.service';
@@ -6,6 +6,8 @@ import { DatabaseService } from './database.service';
 
 @Injectable()
 export class CsvProcessorService {
+  private readonly logger = new Logger(CsvProcessorService.name);
+
   constructor(
     private readonly downloadService: DownloadService,
     private readonly fileService: FileService,
@@ -21,54 +23,36 @@ export class CsvProcessorService {
         const zipStream = await this.downloadService.downloadFile(
           p02.distributionDeliveryURI,
         );
-
         const csvFiles = await this.fileService.unzip(zipStream);
-        console.log('Extracted CSV files:', csvFiles);
 
         for (const csvFile of csvFiles) {
-          try {
-            await this.processCsvFile(csvFile.path);
-          } catch (error) {
-            console.error(
-              `Error processing CSV file ${csvFile.name}:`,
-              error.message,
-            );
-          }
+          await this.processCsvData(csvFile.name, csvFile.data);
         }
       } catch (error) {
-        console.error(
-          `Error processing ZIP from ${p02.distributionDeliveryURI}:`,
-          error.message,
+        this.logger.error(
+          `Error processing ${p02.distributionDeliveryURI}: ${error.message}`,
         );
       }
     }
   }
 
-  private async processCsvFile(filePath: string): Promise<void> {
+  private async processCsvData(fileName: string, data: Buffer): Promise<void> {
+    const csvString = data.toString('utf-8');
+
     try {
-      console.log(`📂 Processing CSV file: ${filePath}`);
+      const tableName = await this.csvService.getTableNameFromData(csvString);
+      const columns = await this.csvService.getCsvColumnsFromData(csvString);
+      const rows = await this.csvService.parseCsvData(csvString);
 
-      const tableName = await this.csvService.getTableName(filePath);
-      console.log(`📋 Table name: ${tableName}`);
+      await this.databaseService.createTableIfNotExists(tableName, columns);
+      await this.databaseService.upsertData(tableName, rows);
 
-      const columns = await this.csvService.getCsvColumns(filePath);
-      console.log(`📋 Columns: ${columns.join(', ')}`);
-
-      await this.databaseService.createTable(tableName, columns);
-      console.log(`✅ Table ${tableName} created`);
-
-      const data = await this.csvService.readCsvData(filePath);
-      console.log(`📄 Read ${data.length} rows from CSV file`);
-
-      await this.databaseService.insertData(tableName, data);
-      console.log(`✅ Data inserted into table ${tableName}`);
-
-      console.log(
-        `🎉 CSV file ${filePath} processed and stored in table ${tableName}`,
+      this.logger.log(
+        `✅ Successfully processed ${fileName} into ${tableName}`,
       );
     } catch (error) {
-      console.error(`❌ Error processing CSV file ${filePath}:`, error.message);
-      throw error; // Re-throw the error to propagate it to the caller
+      this.logger.error(`❌ Failed to process ${fileName}: ${error.message}`);
+      throw error;
     }
   }
 }
