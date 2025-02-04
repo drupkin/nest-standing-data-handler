@@ -35,9 +35,9 @@ export class DatabaseService {
           )
         `);
 
-        this.logger.log(`✅ Created table: ${tableName}`);
+        this.logger.debug(`✅ Created table: ${tableName}`);
       } else {
-        this.logger.log(`ℹ️ Table ${tableName} already exists`);
+        this.logger.warn(`ℹ️ Table ${tableName} already exists`);
       }
 
       await queryRunner.commitTransaction();
@@ -86,7 +86,7 @@ export class DatabaseService {
       }
 
       await queryRunner.commitTransaction();
-      this.logger.log(
+      this.logger.debug(
         `✅ Inserted/updated ${data.length} rows into ${tableName}`,
       );
     } catch (error) {

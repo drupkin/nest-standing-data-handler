@@ -1,26 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { Pub047 } from 'src/dto/pub047';
 import { plainToInstance } from 'class-transformer';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class S3Service {
+  private readonly logger = new Logger(S3Service.name);
   private s3Client: S3Client;
 
-  constructor() {
-    this.s3Client = new S3Client({
-      endpoint: 'http://localhost:4566',
-      region: 'eu-west-1',
-      credentials: {
-        accessKeyId: 'dev-access-key',
-        secretAccessKey: 'dev-secret-key',
-      },
-    });
+  constructor(private configService: ConfigService) {
+    const s3Config = this.configService.get('s3');
+    this.s3Client = new S3Client(s3Config);
   }
 
   async getObject(bucket: string, key: string): Promise<Array<Pub047>> {
-    console.log('Fetching object from S3:', { bucket, key });
+    this.logger.debug('Fetching object from S3:', { bucket, key });
 
     try {
       const command = new GetObjectCommand({ Bucket: bucket, Key: key });
@@ -37,7 +33,7 @@ export class S3Service {
 
       return pub047Array;
     } catch (error) {
-      console.error('Error fetching object from S3:', error);
+      this.logger.error('Error fetching object from S3:', error);
       throw error; // Re-throw the error for the controller to handle
     }
   }

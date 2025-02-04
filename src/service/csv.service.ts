@@ -52,7 +52,7 @@ export class CsvService {
     return new Promise(async (resolve, reject) => {
       try {
         const columns = await this.getCsvColumnsFromData(csvString);
-        this.logger.log(`📋 Extracted columns: ${columns.join(', ')}`);
+        this.logger.debug(`📋 Extracted columns: ${columns.join(', ')}`);
 
         let rowCount = 0;
         const data: Record<string, string>[] = [];
@@ -82,7 +82,7 @@ export class CsvService {
             reject(error);
           })
           .on('end', () => {
-            this.logger.log(`✅ Successfully parsed ${data.length} rows`);
+            this.logger.debug(`✅ Successfully parsed ${data.length} rows`);
             resolve(data);
           });
       } catch (error) {

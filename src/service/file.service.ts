@@ -10,7 +10,7 @@ export class FileService {
   async unzip(
     zipStream: Readable,
   ): Promise<Array<{ name: string; data: Buffer }>> {
-    this.logger.log('📂 Unzipping file...');
+    this.logger.debug('📂 Unzipping file...');
 
     try {
       const buffer = await this.collectStream(zipStream);
