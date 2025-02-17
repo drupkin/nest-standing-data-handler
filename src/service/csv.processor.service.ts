@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DownloadService } from './download.service';
 import { FileService } from './file.service';
 import { CsvService } from './csv.service';
-import { DatabaseService } from './database.service';
+import { DatabaseService } from '../database/database.service';
 import { S3Service } from 'src/s3/s3.service';
 
 @Injectable()
